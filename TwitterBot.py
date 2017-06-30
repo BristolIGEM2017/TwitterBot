@@ -6,12 +6,10 @@ import settings
 import time
 import traceback
 
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-
+from CreateGraph import create_graph
+from CreateImage import create_image
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
-from OpenAQ import API
+from OpenAQAPI import API
 import pprint
 
 CONSUMER_KEY = settings.CONSUMER_KEY
@@ -30,8 +28,8 @@ while True:
     for mention in mentions:
         twitter_data = json.dumps(mention._json)
         twitter_data = json.loads(twitter_data)
-        #pprint.pprint(twitter_data)
-        #print(twitter_data['user']['screen_name'])
+        # pprint.pprint(twitter_data)
+        # print(twitter_data['user']['screen_name'])
         text = ''
         created = datetime.strptime(twitter_data['created_at'], '%a %b %d %H:%M:%S %z %Y')
 
@@ -58,50 +56,9 @@ while True:
                                             )
 
                 week = openaq.measurements(location=location['results'][0]['location'], limit=1000)
-                # pprint.pprint(week)
-                legend_vals = []
-                no_rows = len(set([d['parameter'] for d in week['results']]))
-                plt_id = 1
-                fig, ax = plt.subplots(nrows=no_rows, ncols=1)
-                fig.set_size_inches(15, 10)
-                plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
-                plt.gca().xaxis.set_major_locator(mdates.DayLocator())
+                create_graph(location, week)
+                # create_image(location['results'][0], created, week)
 
-                for par in set([d['parameter'] for d in week['results']]):
-                    val = [d['value'] for d in week['results'] if d['parameter'] == par]
-                    uni = [d['unit'] for d in week['results'] if d['parameter'] == par]
-                    utc = [datetime.strptime(d['date']['utc'], '%Y-%m-%dT%H:%M:%S.%fZ') for d in week['results'] if d['parameter'] == par]
-                    #legend_vals.append(par)
-
-                    plt.subplot(no_rows, 1, plt_id)
-                    plt.plot(utc, val)
-                    plt.legend(par)
-                    plt.ylabel(uni[0])
-                    plt_id += 1
-                    # plt.plot(utc, val)
-
-                # plt.gcf().autofmt_xdate()
-
-                fig.suptitle(location['results'][0]['location'])
-                # ax.xlabel('Time')
-                # ax.ylabel('Pollution Levels')
-                # plt.legend(legend_vals)
-
-                plt.savefig('tweet.png')
-                plt.gcf().clear()
-
-                latest = openaq.latest(location=location['results'][0]['location'])
-
-                '''
-                text = '@' + str(twitter_data['user']['screen_name']) + ' '
-                text += str(latest['results'][0]['location']) + ' - '
-                for measurement in latest['results'][0]['measurements']:
-                    text += str(measurement['parameter']) + ': '
-                    text += str(measurement['value']) + ' '
-                    text += str(measurement['unit']) + ', '
-
-                twitter.update_status(text)
-                '''
                 twitter.update_with_media('tweet.png',
                                           status='@' + str(twitter_data['user']['screen_name']) + ' Oh my!')
                 print('tweeted!')
