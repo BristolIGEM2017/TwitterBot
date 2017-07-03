@@ -1,75 +1,121 @@
 #!/usr/bin/env python3
-import json
 import tweepy
+import os
 import pytz
+import re
 import settings
-import time
-import traceback
 
 from CreateGraph import create_graph
 from CreateImage import create_image
-from datetime import datetime
+from datetime import datetime, timedelta
 from OpenAQAPI import API
-import pprint
 
 CONSUMER_KEY = settings.CONSUMER_KEY
 CONSUMER_SECRET = settings.CONSUMER_SECRET
 ACCESS_TOKEN = settings.ACCESS_TOKEN
 ACCESS_TOKEN_SECRET = settings.ACCESS_TOKEN_SECRET
-auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-twitter = tweepy.API(auth)
 
-last_accessed = datetime.now(tz=pytz.UTC)
+times = {
+    'h': timedelta(hours=1),
+    'd': timedelta(days=1),
+    "w": timedelta(weeks=1),
+}
 
-while True:
-    mentions = twitter.mentions_timeline(count=20)
-    tmp_time = datetime.now(tz=pytz.UTC)
-    for mention in mentions:
-        twitter_data = json.dumps(mention._json)
-        twitter_data = json.loads(twitter_data)
-        # pprint.pprint(twitter_data)
-        # print(twitter_data['user']['screen_name'])
-        text = ''
-        created = datetime.strptime(twitter_data['created_at'], '%a %b %d %H:%M:%S %z %Y')
 
-        try:
-            coordinates = twitter_data['coordinates']['coordinates']
-            location = coordinates
-        except:
-            pass
-        try:
-            place = twitter_data['place']['bounding_box']['coordinates']
-            place = [sum(x)/len(x) for x in zip(*place[0])]
-            location = place
-        except:
-            location = None
+class MyStreamListener(tweepy.StreamListener):
 
-        if created > last_accessed:
-            try:
-                location = str(location[1]) + ', ' + str(location[0])
-
-                openaq = API()
-                location = openaq.locations(coordinates=location,
-                                            nearest=1,
-                                            radius=100
-                                            )
-
-                week = openaq.measurements(location=location['results'][0]['location'], limit=1000)
-                create_graph(location, week)
-                # create_image(location['results'][0], created, week)
-
-                twitter.update_with_media('tweet.png',
-                                          status='@' + str(twitter_data['user']['screen_name']) + ' Oh my!')
-                print('tweeted!')
-            except Exception as e:
-                print(e)
-                traceback.print_exc()
-                text = '@' + str(twitter_data['user']['screen_name']) + ' '
-                text += "I can't find you :(, pls enable location"
-                # twitter.update_status(text)
-                print('Tweeted!')
+    def on_status(self, tweet):
+        if 'graph' in tweet.text:
+            self.tweet_graph(tweet)
         else:
-            pass
-    last_accessed = tmp_time
-    time.sleep(15)
+            self.tweet_image(tweet)
+
+    def on_error(self, status_code):
+        if status_code == 420:
+            print(status_code)
+            return False
+
+    def tweet_image(self, tweet):
+        print('I will tweet an Image')
+        coords = self.get_location(tweet)
+        if coords is None:
+            self.tweet_help(tweet)
+            return
+        coords = str(coords[1]) + ',' + str(coords[0])
+        location = openaq.locations(coordinates=coords,
+                                    nearest=1,
+                                    radius=100
+                                    )
+        from_date = datetime.now(tz=pytz.UTC)-timedelta(hours=25)
+        air_data = openaq.measurements(location=location['results'][0]['location'],
+                                       date_from=from_date,
+                                       limit=1000
+                                       )
+        img = create_image(location['results'][0],
+                           tweet.created_at,
+                           air_data)
+        twitter.update_with_media(img,
+                                  '@{}'.format(tweet.author.screen_name),
+                                  tweet.id)
+        os.remove(img)
+
+    def tweet_graph(self, tweet):
+        print('I will tweet a graph')
+        coords = self.get_location(tweet)
+        if coords is None:
+            self.tweet_help(tweet)
+            return
+        coords = str(coords[1]) + ',' + str(coords[0])
+        location = openaq.locations(coordinates=coords,
+                                    nearest=1,
+                                    radius=100
+                                    )
+
+        pattern = r'(\d+)\s*(w(eek)?|d(ay)?|h(our)?)s?'
+        text = re.search(pattern, tweet.text.lower())
+
+        if text is None:
+            self.tweet_help()
+            return
+        print(text.groups())
+        time_delta = times[text.group(2)[0]] * int(text.group(1))
+
+        from_date = datetime.now(tz=pytz.UTC)-time_delta
+        print(location['results'][0]['location'])
+        air_data = openaq.measurements(location=location['results'][0]['location'],
+                                       date_from=from_date.strftime('%FT%T'),
+                                       limit=1000
+                                       )
+        print(from_date.strftime('%FT%T'))
+        img = create_graph(location, air_data)
+        twitter.update_with_media(img,
+                                  '@{}'.format(tweet.author.screen_name),
+                                  tweet.id)
+        os.remove(img)
+
+    def tweet_help(self, tweet):
+        pass
+
+    def get_location(self, tweet):
+        if tweet.place is not None:
+            coords = tweet.place.bounding_box.coordinates[0]
+            coords = [sum(x)/len(x) for x in zip(*coords)]
+        elif tweet.coordinates is not None:
+            coords = tweet.coordinates.coordinates
+        else:
+            return None
+        return coords
+
+
+if __name__ == '__main__':
+    auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+    openaq = API()
+    twitter = tweepy.API(auth)
+
+    myStreamListener = MyStreamListener()
+    stream = tweepy.Stream(auth=auth, listener=MyStreamListener())
+
+    stream.userstream('pollution_bot')
+    stream.filter(track=[])
