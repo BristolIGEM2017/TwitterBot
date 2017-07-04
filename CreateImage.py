@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
+import os
+from tempfile import mkstemp
+
 from PIL import ImageFont
 from PIL import ImageDraw
 from PIL import Image
 
 from AQI import air_quality
 from datetime import datetime, timedelta
+
+import pytz
+from tzwhere import tzwhere
+
+tzwhere = tzwhere.tzwhere()
 
 index = {
     1: {'index': 'Low', 'color': (0, 0, 0), 'fill': '#92d04f'},
@@ -33,6 +41,10 @@ def create_image(place, date, data):
 
     aqi = air_quality(data)
 
+    if len(place['city'] + ', ' + place['country']) > 20:
+        font_size = 40 - (len(place['city'] + ', ' + place['country']) - 20)
+        font = ImageFont.truetype('NotoSansUI-Regular.ttf', font_size)
+
     draw.text((40, 15),
               place['city'] + ', ' + place['country'],
               (0, 0, 0),
@@ -46,6 +58,11 @@ def create_image(place, date, data):
               font=font)
 
     font = ImageFont.truetype('NotoSansUI-Regular.ttf', 20)
+
+    tz_str = tzwhere.tzNameAt(place['coordinates']['latitude'], place['coordinates']['longitude'])
+    timezone = pytz.timezone(tz_str)
+    date = pytz.utc.localize(date).astimezone(timezone)
+
     draw.text((40, 110),
               date.strftime('%d %b %Y %H:%M:%S'),
               (0, 0, 0),
@@ -135,7 +152,10 @@ def create_image(place, date, data):
 
     font = ImageFont.truetype('NotoSansUI-Regular.ttf', 20)
     draw.text((100, 430), 'Based on the UK Air Quality Index', (0, 0, 0), font=font)
-    draw.text((50, 455), 'https://uk-air.defra.gov.uk/air-pollution/daqi', (0, 0, 0), font=font)
+    draw.text((50, 458), 'https://uk-air.defra.gov.uk/air-pollution/daqi', (0, 0, 0), font=font)
     draw.text((100, 485), 'Pollution Bot  -  Bristol iGEM 2017', (0, 0, 0), font=font)
 
-    img.save('tweet.png')
+    handle, filename = mkstemp('.png')
+    os.close(handle)
+    img.save(filename)
+    return filename
