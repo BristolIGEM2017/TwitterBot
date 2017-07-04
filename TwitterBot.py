@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-import tweepy
 import os
-import pytz
 import re
+from datetime import datetime, timedelta
+import tweepy
+import pytz
 import settings
-
 from CreateGraph import create_graph
 from CreateImage import create_image
-from datetime import datetime, timedelta
 from OpenAQAPI import API
 
 CONSUMER_KEY = settings.CONSUMER_KEY

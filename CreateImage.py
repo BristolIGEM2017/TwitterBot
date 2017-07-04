@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 import os
-from tempfile import mkstemp
-
-from PIL import ImageFont
-from PIL import ImageDraw
-from PIL import Image
-
-from AQI import air_quality
 from datetime import datetime, timedelta
+from tempfile import mkstemp
+from PIL import ImageFont, ImageDraw, Image
+from AQI import air_quality
 
 import pytz
 from tzwhere import tzwhere
@@ -36,7 +32,6 @@ def draw_index():
 def create_image(place, date, data):
     font = ImageFont.truetype('NotoSansUI-Regular.ttf', 40)
     img = Image.new('RGBA', (512, 512), (255, 255, 255))
-    # img = Image.open('assets/bg'+bg_no+'.jpg')
     draw = ImageDraw.Draw(img)
 
     aqi = air_quality(data)
@@ -124,31 +119,6 @@ def create_image(place, date, data):
               index[aqi['so2']]['color'],
               font=font)
 
-    '''
-    draw.rectangle([(20, 370),
-                   (492, 420)],
-                   fill=index[aqi['co']]['fill'])
-    draw.text((40, 380),
-              'CO: ' + index[aqi['co']]['index'],
-              index[aqi['co']]['color'],
-              font=font)
-    draw.text((440, 380),
-              str(aqi['co']),
-              index[aqi['co']]['color'],
-              font=font)
-
-    draw.rectangle([(20, 420),
-                   (492, 470)],
-                   fill=index[aqi['bc']]['fill'])
-    draw.text((40, 430),
-              'BC: ' + index[aqi['bc']]['index'],
-              index[aqi['bc']]['color'],
-              font=font)
-    draw.text((440, 430),
-              str(aqi['bc']),
-              index[aqi['bc']]['color'],
-              font=font)
-    '''
 
     font = ImageFont.truetype('NotoSansUI-Regular.ttf', 20)
     draw.text((100, 430), 'Based on the UK Air Quality Index', (0, 0, 0), font=font)

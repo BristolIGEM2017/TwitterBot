@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-import numpy as np
 import math
-
 from datetime import datetime, timedelta
-from OpenAQ import API
+import numpy as np
+from OpenAQAPI import API
 
 openaq = API()
 

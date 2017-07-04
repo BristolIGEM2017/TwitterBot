@@ -1,5 +1,5 @@
-import requests
 import time
+import requests
 
 
 class API(object):
@@ -20,9 +20,3 @@ class API(object):
             return get
         else:
             raise AttributeError()
-
-
-if __name__ == '__main__':
-    c = API()
-    out = c.locations(coordinates='36.595106,-82.188744', nearest=1, radius=10000)
-    print(out)

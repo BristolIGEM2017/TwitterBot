@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import os
-from tempfile import mkstemp
 import math
-
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-
+from tempfile import mkstemp
 from datetime import datetime
 from bisect import bisect
-
 import pytz
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from tzwhere import tzwhere
 
 tzwhere = tzwhere.tzwhere()
@@ -89,8 +86,6 @@ def create_graph(location, date, data):
     fig.suptitle(title, fontsize=30)
     fig.text(.5, .92, date.strftime('%d %b %Y %H:%M:%S'), ha='center', fontsize=15)
     fig.text(.5, .01, 'Source: OpenAQ Database', ha='center', fontsize=15)
-    # ax.xlabel('Time')
-    # ax.ylabel('Pollution Levels')
     handle, filename = mkstemp('.png')
     os.close(handle)
     plt.savefig(filename)
