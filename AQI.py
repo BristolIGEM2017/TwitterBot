@@ -61,11 +61,9 @@ def air_quality(data):
     no2_index = get_index(data, 'no2')
     o3_index = get_index(data, 'o3')
     so2_index = get_index(data, 'so2')
-    co_index = get_index(data, 'co')
-    bc_index = get_index(data, 'bc')
 
     index = {'pm25': pm25_index, 'pm10': pm10_index, 'no2': no2_index,
-             'o3': o3_index, 'so2': so2_index, 'co': co_index, 'bc': bc_index}
+             'o3': o3_index, 'so2': so2_index}
 
     return index
 
