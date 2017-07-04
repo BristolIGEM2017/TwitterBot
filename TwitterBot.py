@@ -25,76 +25,107 @@ times = {
 class MyStreamListener(tweepy.StreamListener):
 
     def on_status(self, tweet):
-        if 'graph' in tweet.text:
-            self.tweet_graph(tweet)
-        else:
-            self.tweet_image(tweet)
+        if tweet.author.screen_name == 'pollution_bot':
+            return
+        try:
+            if 'graph' in tweet.text.lower():
+                self.tweet_graph(tweet)
+            else:
+                self.tweet_image(tweet)
+        except KeyboardInterrupt as _:
+            raise KeyboardInterrupt
+        except Exception as e:
+            print(e)
+            self.tweet_error(tweet)
+
 
     def on_error(self, status_code):
         if status_code == 420:
-            print(status_code)
             return False
 
     def tweet_image(self, tweet):
-        print('I will tweet an Image')
         coords = self.get_location(tweet)
         if coords is None:
             self.tweet_help(tweet)
             return
         coords = str(coords[1]) + ',' + str(coords[0])
         location = openaq.locations(coordinates=coords,
-                                    nearest=1,
+                                    nearest=5,
                                     radius=100
-                                    )
+                                   )
         from_date = datetime.now(tz=pytz.UTC)-timedelta(hours=25)
-        air_data = openaq.measurements(location=location['results'][0]['location'],
-                                       date_from=from_date,
-                                       limit=1000
-                                       )
+        for x in location['results']:
+            air_data = openaq.measurements(location=x['location'],
+                                           date_from=from_date.strftime('%FT%T'),
+                                           limit=10000
+                                          )
+            if air_data['results']:
+                break
+
+        if air_data is None:
+            self.tweet_no_data(tweet)
+            return
         img = create_image(location['results'][0],
                            tweet.created_at,
                            air_data)
+        msg = ' Here is your pollution data!'
         twitter.update_with_media(img,
-                                  '@{}'.format(tweet.author.screen_name),
-                                  tweet.id)
+                                  '@{}'.format(tweet.author.screen_name) + msg,
+                                  in_reply_to_status_id=tweet.id)
         os.remove(img)
 
     def tweet_graph(self, tweet):
-        print('I will tweet a graph')
         coords = self.get_location(tweet)
         if coords is None:
             self.tweet_help(tweet)
             return
         coords = str(coords[1]) + ',' + str(coords[0])
         location = openaq.locations(coordinates=coords,
-                                    nearest=1,
-                                    radius=100
-                                    )
+                                    nearest=5,
+                                   )
 
-        pattern = r'(\d+)\s*(w(eek)?|d(ay)?|h(our)?)s?'
+        pattern = r'([\d.,]+)\s*(w(eek)?|d(ay)?|h(our)?)s?'
         text = re.search(pattern, tweet.text.lower())
 
         if text is None:
-            self.tweet_help()
+            self.tweet_help(tweet)
             return
-        print(text.groups())
-        time_delta = times[text.group(2)[0]] * int(text.group(1))
+        time_delta = times[text.group(2)[0]] * float(text.group(1).replace(',', '.'))
 
         from_date = datetime.now(tz=pytz.UTC)-time_delta
-        print(location['results'][0]['location'])
-        air_data = openaq.measurements(location=location['results'][0]['location'],
-                                       date_from=from_date.strftime('%FT%T'),
-                                       limit=1000
-                                       )
-        print(from_date.strftime('%FT%T'))
-        img = create_graph(location, air_data)
+
+        for x in location['results']:
+            air_data = openaq.measurements(location=x['location'],
+                                           date_from=from_date.strftime('%FT%T'),
+                                           limit=10000
+                                          )
+            if air_data['results']:
+                break
+
+        if air_data['results'] == []:
+            self.tweet_no_data(tweet)
+            return
+        img = create_graph(location, tweet.created_at, air_data)
+        msg = ' Here is a graph of your pollution data!'
         twitter.update_with_media(img,
-                                  '@{}'.format(tweet.author.screen_name),
-                                  tweet.id)
+                                  '@{}'.format(tweet.author.screen_name) + msg,
+                                  in_reply_to_status_id=tweet.id)
         os.remove(img)
 
     def tweet_help(self, tweet):
-        pass
+        msg = ' You must specify a location on your tweet'
+        twitter.update_status('@{}'.format(tweet.author.screen_name) + msg,
+                              in_reply_to_status_id=tweet.id)
+
+    def tweet_no_data(self, tweet):
+        msg = u' I\'m sorry \U0001F625, there\'s no available data near you.'
+        twitter.update_status('@{}'.format(tweet.author.screen_name) + msg,
+                              in_reply_to_status_id=tweet.id)
+
+    def tweet_error(self, tweet):
+        msg = u' Oh dear, I think something went wrong! \U0001F631 \u26A0'
+        twitter.update_status('@{}'.format(tweet.author.screen_name) + msg,
+                              in_reply_to_status_id=tweet.id)
 
     def get_location(self, tweet):
         if tweet.place is not None:
