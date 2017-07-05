@@ -33,6 +33,24 @@ pol_lvl = {
     'bc': []
 }
 
+scale = {
+    'o3': 1.9957,
+    'no2': 1.9125,
+    'so2': 2.6609,
+    'co': 0.0011642,
+    'bc': 1,
+    'pm25': 1,
+    'pm10': 1,
+}
+
+conversions = {
+    k: {
+        u'µg/m³': 1,
+        u'ppm': 1000 * s,
+        u'ppb': s,
+    } for k, s in scale.items()
+}
+
 colour = {
     1: '#92d04f', 2: '#00b04f', 3: '#006500', 4: '#fad4b4', 5: '#ffc000',
     6: '#e36b09', 7: '#ff0000', 8: '#c00000', 9: '#6f0000', 10: '#000000',
@@ -44,6 +62,8 @@ def add_subplot(plt, data, par, no_rows, plt_id):
     val = [d['value'] for d in data['results'] if d['parameter'] == par]
     uni = [d['unit'] for d in data['results'] if d['parameter'] == par]
     utc = [datetime.strptime(d['date']['utc'], '%Y-%m-%dT%H:%M:%S.%fZ') for d in data['results'] if d['parameter'] == par]
+
+    val = [x*conversions[par][uni[0]] for x in val]
 
     plt.subplot(no_rows, 1, plt_id)
     plt.plot(utc, val)
@@ -57,7 +77,7 @@ def add_subplot(plt, data, par, no_rows, plt_id):
         plt.axhspan(low, upp, facecolor=colour[j+1], alpha=0.2)
         j += 1
     plt.title(title_par[par])
-    plt.ylabel(uni[0])
+    plt.ylabel(u'µg/m³')
 
 
 def create_graph(location, date, data):

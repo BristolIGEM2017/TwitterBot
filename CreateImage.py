@@ -30,18 +30,23 @@ def draw_index():
 
 
 def create_image(place, date, data):
-    font = ImageFont.truetype('NotoSansUI-Regular.ttf', 40)
     img = Image.new('RGBA', (512, 512), (255, 255, 255))
     draw = ImageDraw.Draw(img)
-
     aqi = air_quality(data)
+    title = place['city'] + ', ' + place['country']
 
-    if len(place['city'] + ', ' + place['country']) > 20:
-        font_size = 40 - (len(place['city'] + ', ' + place['country']) - 20)
+    if len(title) > 30:
+        title = title[:30] + '...' + ', ' + place['country']
+
+    font_size = 40
+    font = ImageFont.truetype('NotoSansUI-Regular.ttf', font_size)
+
+    while font.getsize(title)[0] > 512 - 80:
+        font_size -= 1
         font = ImageFont.truetype('NotoSansUI-Regular.ttf', font_size)
 
     draw.text((40, 15),
-              place['city'] + ', ' + place['country'],
+              title,
               (0, 0, 0),
               font=font)
 
