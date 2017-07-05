@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import math
 from datetime import datetime, timedelta
 import numpy as np
 from OpenAQAPI import API
@@ -28,15 +27,15 @@ conversions = {
 
 tables = {
     'pm25': np.array([0, 11, 12, 23, 24, 35, 36, 41, 42, 46, 47, 53, 54, 58, 59, 64,
-                      65, 70, 71, math.inf], dtype=float),
+                      65, 70, 71, float('inf')], dtype=float),
     'pm10': np.array([0, 16, 17, 33, 34, 50, 51, 58, 59, 66, 67, 75, 76, 83, 84, 91,
-                      92, 100, 101, math.inf], dtype=float),
+                      92, 100, 101, float('inf')], dtype=float),
     'so2': np.array([0, 88, 89, 176, 177, 265, 266, 354, 355, 442, 443, 531, 532,
-                     708, 709, 886, 887, 1063, 1064, math.inf], dtype=float),
+                     708, 709, 886, 887, 1063, 1064, float('inf')], dtype=float),
     'no2': np.array([0, 66, 67, 133, 134, 200, 201, 267, 268, 334, 335, 400, 401,
-                     467, 468, 534, 535, 600, 601, math.inf], dtype=float),
+                     467, 468, 534, 535, 600, 601, float('inf')], dtype=float),
     'o3': np.array([0, 33, 34, 66, 67, 100, 101, 120, 121, 140, 141, 160, 161, 187,
-                    188, 213, 214, 240, 241, math.inf], dtype=float),
+                    188, 213, 214, 240, 241, float('inf')], dtype=float),
 }
 aqi = np.array([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10],
                dtype=float)

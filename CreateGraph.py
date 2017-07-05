@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import math
 from tempfile import mkstemp
 from datetime import datetime
 from bisect import bisect
@@ -24,11 +23,11 @@ title_par = {
 }
 
 pol_lvl = {
-    'pm25': [0, 12, 24, 36, 42, 48, 54, 59, 65, 71, math.inf],
-    'pm10': [0, 17, 34, 51, 59, 67, 76, 84, 92, 101, math.inf],
-    'no2': [0, 68, 135, 201, 268, 335, 401, 468, 535, 601, math.inf],
-    'o3': [0, 34, 67, 101, 121, 141, 161, 188, 214, 241, math.inf],
-    'so2': [0, 89, 178, 267, 355, 444, 533, 711, 888, 1065, math.inf],
+    'pm25': [0, 12, 24, 36, 42, 48, 54, 59, 65, 71, float('inf')],
+    'pm10': [0, 17, 34, 51, 59, 67, 76, 84, 92, 101, float('inf')],
+    'no2': [0, 68, 135, 201, 268, 335, 401, 468, 535, 601, float('inf')],
+    'o3': [0, 34, 67, 101, 121, 141, 161, 188, 214, 241, float('inf')],
+    'so2': [0, 89, 178, 267, 355, 444, 533, 711, 888, 1065, float('inf')],
     'co': [],
     'bc': []
 }
