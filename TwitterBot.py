@@ -26,6 +26,10 @@ class MyStreamListener(tweepy.StreamListener):
     def on_status(self, tweet):
         if tweet.author.screen_name == 'pollution_bot':
             return
+        elif hasattr(tweet, 'retweeted_status'):
+            return
+        elif tweet.in_reply_to_status_id:
+            return
         try:
             if 'graph' in tweet.text.lower():
                 self.tweet_graph(tweet)
@@ -40,7 +44,15 @@ class MyStreamListener(tweepy.StreamListener):
 
     def on_error(self, status_code):
         if status_code == 420:
+            print(status_code)
             return False
+
+    def on_timeout(self):
+        print('Timeout at {}'.format(datetime.now()))
+
+    def on_disconnect(self, notice):
+        print('Disconnected at {} : {}'.format(datetime.now(), notice))
+        return False
 
     def tweet_image(self, tweet):
         coords = self.get_location(tweet)
@@ -49,8 +61,7 @@ class MyStreamListener(tweepy.StreamListener):
             return
         coords = str(coords[1]) + ',' + str(coords[0])
         location = openaq.locations(coordinates=coords,
-                                    nearest=5,
-                                    radius=100
+                                    nearest=5
                                    )
         from_date = datetime.now(tz=pytz.UTC)-timedelta(hours=25)
         for x in location['results']:
@@ -61,7 +72,7 @@ class MyStreamListener(tweepy.StreamListener):
             if air_data['results']:
                 break
 
-        if air_data is None:
+        if air_data['results'] == []:
             self.tweet_no_data(tweet)
             return
         img = create_image(location['results'][0],
@@ -87,9 +98,9 @@ class MyStreamListener(tweepy.StreamListener):
         text = re.search(pattern, tweet.text.lower())
 
         if text is None:
-            self.tweet_help(tweet)
-            return
-        time_delta = times[text.group(2)[0]] * float(text.group(1).replace(',', '.'))
+            time_delta = timedelta(days=7)
+        else:
+            time_delta = times[text.group(2)[0]] * float(text.group(1).replace(',', '.'))
 
         from_date = datetime.now(tz=pytz.UTC)-time_delta
 

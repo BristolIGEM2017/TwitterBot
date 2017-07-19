@@ -108,5 +108,5 @@ def create_graph(location, date, data):
     handle, filename = mkstemp('.png')
     os.close(handle)
     plt.savefig(filename)
-    plt.gcf().clear()
+    plt.close()
     return filename
